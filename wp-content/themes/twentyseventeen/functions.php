@@ -594,9 +594,20 @@ add_action( 'rest_api_init', 'haru_register_routes' );
  */
 function haru_register_routes() {
     register_rest_route( 'haru/v1', 'events', array(
-        // 'methods'  => WP_REST_Server::READABLE,
         'methods'  => WP_REST_Server::CREATABLE,
-        'callback' => 'haru_serve_route',
+        'callback' => 'haru_insert_events',
+    ) );
+	register_rest_route( 'haru/v1', 'organizers/facebook', array(
+        'methods'  => WP_REST_Server::READABLE,
+        'callback' => 'haru_get_organizers_facebook'
+    ) );
+    register_rest_route( 'haru/v1', 'venues/facebook', array(
+        'methods'  => WP_REST_Server::READABLE,
+        'callback' => 'haru_get_venues_facebook'
+    ) );
+    register_rest_route( 'haru/v1', 'venues/unwanted', array(
+        'methods'  => WP_REST_Server::READABLE,
+        'callback' => 'haru_get_venues_unwanted'
     ) );
 }
 
@@ -607,7 +618,7 @@ function haru_register_routes() {
  *
  * @return WP_REST_Response|WP_Error The response for the request.
  */
-function haru_serve_route( WP_REST_Request $request ) {
+function haru_insert_events( WP_REST_Request $request ) {
 	// get sent json body
 	$item = $request->get_json_params();
 
@@ -685,6 +696,67 @@ function haru_serve_route( WP_REST_Request $request ) {
     // Return either a WP_REST_Response or WP_Error object
     // return $post_id;
 	return new WP_REST_Response($post_id, 200);
+}
+
+function haru_get_organizers_facebook() {
+
+	global $wpdb;
+	$querystr = "
+		SELECT $wpdb->posts.ID, $wpdb->posts.post_title, $wpdb->postmeta.meta_id, $wpdb->postmeta.meta_key, $wpdb->postmeta.meta_value
+		FROM $wpdb->posts
+		INNER JOIN $wpdb->postmeta
+		ON $wpdb->posts.ID = $wpdb->postmeta.post_id
+		WHERE $wpdb->posts.post_type = 'organizers'
+		AND $wpdb->posts.post_status = 'publish'
+		AND $wpdb->postmeta.meta_key = 'facebook_page'
+    ";
+	$results = $wpdb->get_results($querystr);
+
+	if (empty($results)) {
+		return new WP_Error( 'haru_no_data', 'No data returned', array( 'status' => 400 ) );
+	}
+	return $results;
+}
+
+function haru_get_venues_facebook() {
+
+	global $wpdb;
+	$querystr = "
+		SELECT $wpdb->posts.ID, $wpdb->posts.post_title, $wpdb->postmeta.meta_id, $wpdb->postmeta.meta_key, $wpdb->postmeta.meta_value
+		FROM $wpdb->posts
+		INNER JOIN $wpdb->postmeta
+		ON $wpdb->posts.ID = $wpdb->postmeta.post_id
+		WHERE $wpdb->posts.post_type = 'venues'
+		AND $wpdb->posts.post_status = 'publish'
+		AND $wpdb->postmeta.meta_key = 'facebook_page'
+    ";
+	$results = $wpdb->get_results($querystr);
+
+	if (empty($results)) {
+		return new WP_Error( 'haru_no_data', 'No data returned', array( 'status' => 400 ) );
+	}
+	return $results;
+}
+
+function haru_get_venues_unwanted() {
+
+	global $wpdb;
+	$querystr = "
+		SELECT $wpdb->posts.ID
+		FROM $wpdb->posts
+		INNER JOIN $wpdb->postmeta
+		ON $wpdb->posts.ID = $wpdb->postmeta.post_id
+		WHERE $wpdb->posts.post_type = 'venues'
+		AND $wpdb->posts.post_status = 'publish'
+		AND $wpdb->postmeta.meta_key = 'type'
+		AND ($wpdb->postmeta.meta_value LIKE '%public%' OR $wpdb->postmeta.meta_value LIKE '%culturel%')
+    ";
+	$results = $wpdb->get_results($querystr);
+
+	if (empty($results)) {
+		return new WP_Error( 'haru_no_data', 'No data returned', array( 'status' => 400 ) );
+	}
+	return $results;
 }
 
 // Add custom columns in Events dashboard and sort them ----------------------
