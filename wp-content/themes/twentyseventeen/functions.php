@@ -609,6 +609,10 @@ function haru_register_routes() {
         'methods'  => WP_REST_Server::READABLE,
         'callback' => 'haru_get_venues_unwanted'
     ) );
+	register_rest_route( 'haru/v1', 'events/facebook', array(
+        'methods'  => WP_REST_Server::READABLE,
+        'callback' => 'haru_get_events_facebook'
+    ) );
 }
 
 /**
@@ -628,14 +632,14 @@ function haru_insert_events( WP_REST_Request $request ) {
 		empty( $item['id'] ) ||
 		empty( $item['start_time'] ) ||
 		empty( $item['end_time'] ) ||
-		empty( $item['place']['name'] ) ||
-		empty( $item['place']['id'] ) ||
-		empty( $item['place']['location']['country'] ) ||
-		empty( $item['place']['location']['city'] ) ||
-		empty( $item['place']['location']['latitude'] ) ||
-		empty( $item['place']['location']['longitude'] ) ||
-		empty( $item['place']['location']['street'] ) ||
-		empty( $item['place']['location']['zip'] ) ||
+		// empty( $item['place']['name'] ) ||
+		// empty( $item['place']['id'] ) ||
+		// empty( $item['place']['location']['country'] ) ||
+		// empty( $item['place']['location']['city'] ) ||
+		// empty( $item['place']['location']['latitude'] ) ||
+		// empty( $item['place']['location']['longitude'] ) ||
+		// empty( $item['place']['location']['street'] ) ||
+		// empty( $item['place']['location']['zip'] ) ||
 		empty( $item['cover']['source'] ) ||
 		empty( $item['cover']['height'] ) ||
 		empty( $item['cover']['width'] )
@@ -750,6 +754,25 @@ function haru_get_venues_unwanted() {
 		AND $wpdb->posts.post_status = 'publish'
 		AND $wpdb->postmeta.meta_key = 'type'
 		AND ($wpdb->postmeta.meta_value LIKE '%public%' OR $wpdb->postmeta.meta_value LIKE '%culturel%')
+    ";
+	$results = $wpdb->get_results($querystr);
+
+	if (empty($results)) {
+		return new WP_Error( 'haru_no_data', 'No data returned', array( 'status' => 400 ) );
+	}
+	return $results;
+}
+
+function haru_get_events_facebook() {
+
+	global $wpdb;
+	$querystr = "
+		SELECT $wpdb->posts.ID, $wpdb->postmeta.meta_value
+		FROM $wpdb->posts
+		INNER JOIN $wpdb->postmeta
+		ON $wpdb->posts.ID = $wpdb->postmeta.post_id
+		WHERE $wpdb->posts.post_type = 'events'
+		AND $wpdb->postmeta.meta_key = 'facebook_event_url'
     ";
 	$results = $wpdb->get_results($querystr);
 
