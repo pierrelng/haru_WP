@@ -105,3 +105,5 @@ Thumbs.db
 !wp-content/plugins/advanced-custom-fields-pro/
 !wp-content/plugins/custom-post-type-ui/
 !wp-content/themes/twentyseventeen/
+!wp-content/plugins/haru-custom-api-functions/
+!wp-content/plugins/haru-custom-admin-dashboard/
