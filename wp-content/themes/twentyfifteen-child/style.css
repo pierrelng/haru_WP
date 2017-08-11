@@ -5,3 +5,41 @@
  Template:     twentyfifteen
  Version:      1.0.0
 */
+
+.hentry {
+    padding-top: 0;
+}
+
+.blueanchor {
+    color: #2980b9;
+    border-bottom: 1px solid #2980b9 !important;
+}
+
+.blueanchor:hover {
+    /*border-bottom: 1px solid rgba(51, 51, 51, 0.7) !important;*/
+    border-bottom: 1px solid #707070 !important;
+}
+
+.haru_tag_container {
+    margin-bottom: 15px;
+}
+
+.haru_tag {
+    display: inline-block;
+    border: solid 1px #333;
+    border-radius: 10px;
+    padding: 0 6px 0 6px;
+    margin: 0 5px 4px 0;
+    line-height: 20px;
+    font-family: "Noto Sans", sans-serif;
+    font-size: .75em;
+}
+
+.haru_tag:hover {
+    background-color: #333;
+    color: white;
+}
+
+.notfoundtags {
+    margin-top: 10px;
+}
