@@ -48,6 +48,26 @@ function haru_register_routes() {
         'methods'  => WP_REST_Server::READABLE,
         'callback' => 'haru_get_events_facebook'
     ) );
+	register_rest_route( 'haru/v1', 'acftag/change', array(
+        'methods'  => WP_REST_Server::READABLE,
+        'callback' => 'haru_change_acf_tags'
+    ) );
+	register_rest_route( 'haru/v1', 'events/tags/post', array(
+        'methods'  => WP_REST_Server::READABLE,
+        'callback' => 'haru_post_events_WPtags'
+    ) );
+    register_rest_route( 'haru/v1', 'events/cover', array(
+        'methods'  => WP_REST_Server::READABLE,
+        'callback' => 'haru_get_events_cover'
+    ) );
+    register_rest_route( 'haru/v1', 'events/cover/manual', array(
+        'methods'  => WP_REST_Server::CREATABLE,
+        'callback' => 'haru_manual_event_add_cover'
+    ) );
+    register_rest_route( 'haru/v1', 'events/cover/update/manual', array(
+        'methods'  => WP_REST_Server::EDITABLE,
+        'callback' => 'haru_manual_event_update_cover'
+    ) );
 }
 
 /**
@@ -188,7 +208,7 @@ function haru_get_venues_unwanted() {
 		WHERE $wpdb->posts.post_type = 'venues'
 		AND $wpdb->posts.post_status = 'publish'
 		AND $wpdb->postmeta.meta_key = 'type'
-		AND ($wpdb->postmeta.meta_value LIKE '%public%' OR $wpdb->postmeta.meta_value LIKE '%culturel%')
+		AND $wpdb->postmeta.meta_value LIKE '%public%'
     ";
 	$results = $wpdb->get_results($querystr);
 
@@ -215,6 +235,157 @@ function haru_get_events_facebook() {
 		return new WP_Error( 'haru_no_data', 'No data returned', array( 'status' => 400 ) );
 	}
 	return $results;
+}
+
+function haru_change_acf_tags( WP_REST_Request $request ) {
+
+    $post_type = $request['post_type'];
+    $tag_request = $request['tag'];
+    $field_name = $request['fieldname'];
+    $replacement = $request['replacement'];
+    if (empty($tag_request) || empty($field_name) || empty($post_type)) {
+        return new WP_Error( 'haru_empty_parameters', 'Missing parameters', array( 'status' => 400 ) );
+    }
+    $post_ids = get_posts(array(
+        'post_type' => $post_type,
+        'post_status' => 'any', // any = tous les post_status sauf 'trash'
+        'fields' => 'ids',
+        'posts_per_page' => -1,
+        'meta_query' => array(
+            array(
+                'key' => $field_name,
+                'value' => $tag_request,
+                'compare' => 'LIKE'
+            )
+        )
+    ));
+    $log_ids = [];
+    if( $post_ids ) {
+        $count = 0;
+        $errors = [];
+        foreach ($post_ids as $id) {
+            $field = get_field_object($field_name, $id);
+            $field_key = $field['key'];
+            $tags = $field['value'];
+            if (($key = array_search($tag_request, $tags)) !== FALSE) {
+                $tags[$key] = $replacement;
+            }
+            $value = update_field($field_key, $tags, $id);
+            if ($value) {
+                $updated_field = get_field_object($field_name, $id);
+                $count++;
+                $log_ids[] = $id;
+            } else {
+                $errors[] = $id;
+            }
+        }
+        return 'Succeeded : '.$count.'. Failed : '.count($errors).'. Error Details : '.json_encode($errors).' Logs : '.json_encode($log_ids);
+    } else {
+        return new WP_Error( 'haru_no_matches', 'No matches for '.$tag_request.' and '.$field_name, array( 'status' => 400 ) );
+    }
+}
+
+function haru_post_events_WPtags() {
+
+    $post_ids = get_posts(array(
+        'post_type' => 'events',
+        'post_status' => 'publish',
+        'posts_per_page'=> -1,
+        'fields' => 'ids'
+    ));
+    if ($post_ids) {
+        $count = 0;
+        foreach ($post_ids as $id) {
+            $fields = get_fields($id);
+            $tags = [];
+            foreach ($fields as $key => $value) {
+                if (substr( $key, 0, 4 ) === "tag_" && !empty($value)) {
+                    if (is_array($value)) {
+                        foreach ($value as $tag) {
+                            $tags[] = str_replace("_"," ", $tag);
+                        }
+                    } else {
+                        $tags[] = str_replace("_"," ", $value);
+                    }
+                }
+            }
+            $res = wp_set_post_tags($id, $tags);
+            if ($res && !empty($res)) {
+                $count++;
+            } else {
+                return new WP_Error( 'haru_error', 'Error on post '.$id, array( 'status' => 400 ) );
+            }
+        }
+        return 'Total posts ids in WP : '.count($post_ids).'. Inserted tags on '.$count.' posts.';
+    } else {
+        return new WP_Error( 'haru_no_matches', 'No posts ids', array( 'status' => 400 ) );
+    }
+}
+
+function haru_get_events_cover() {
+
+	global $wpdb;
+	$querystr = "
+		SELECT $wpdb->posts.ID, $wpdb->postmeta.meta_value
+		FROM $wpdb->posts
+		INNER JOIN $wpdb->postmeta
+		ON $wpdb->posts.ID = $wpdb->postmeta.post_id
+		WHERE $wpdb->posts.post_type = 'events'
+        AND $wpdb->posts.post_status = 'publish'
+		AND $wpdb->postmeta.meta_key = 'cover_source'
+    ";
+	$results = $wpdb->get_results($querystr);
+
+	if (empty($results)) {
+		return new WP_Error( 'haru_no_data', 'No data returned', array( 'status' => 400 ) );
+	}
+	return $results;
+}
+
+function haru_manual_event_add_cover( WP_REST_Request $request ) {
+
+    $post_id = $request['post_id'];
+    $source = $request['source'];
+    $height = $request['height'];
+    $width = $request['width'];
+
+    if (
+        empty( $post_id ) ||
+        empty( $source ) ||
+        empty( $height ) ||
+        empty( $width )
+    ) {
+        return new WP_Error( 'missing_data', 'Incomplete json data', array( 'status' => 400 ) );
+    }
+
+    add_post_meta( $post_id, 'cover_source', $source );
+	add_post_meta( $post_id, 'cover_height', $height );
+	add_post_meta( $post_id, 'cover_width', $width );
+
+    return new WP_REST_Response('done', 200);
+}
+
+function haru_manual_event_update_cover( WP_REST_Request $request ) {
+
+    $post_id = $request['post_id'];
+    $source = $request['source'];
+    $height = $request['height'];
+    $width = $request['width'];
+
+    if (
+        empty( $post_id ) ||
+        empty( $source ) ||
+        empty( $height ) ||
+        empty( $width )
+	) {
+		return new WP_Error( 'missing_data', 'Incomplete json data', array( 'status' => 400 ) );
+	}
+
+    update_post_meta( $post_id, 'cover_source', $source );
+    update_post_meta( $post_id, 'cover_height', $height );
+    update_post_meta( $post_id, 'cover_width', $width );
+
+    return new WP_REST_Response('done', 200);
 }
 
 ?>
