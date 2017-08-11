@@ -1,0 +1,67 @@
+<?php
+/**
+ * The sidebar containing the main widget area
+ *
+ * @package WordPress
+ * @subpackage Twenty_Fifteen
+ * @since Twenty Fifteen 1.0
+ */
+ ?>
+
+ <!-- <div id="widget-area" class="widget-area" role="complementary">
+	 <aside id="search-2" class="widget widget_search">
+		 <form method="POST" class="search-form" action="http://pierrelange.com/">
+			 <label>
+				 <input type="search" class="search-field" placeholder="Rechercher par tags..." value="" name="haru_tags">
+			 </label>
+			 <input type="submit" class="search-submit" value="">
+		 </form>
+	 </aside>
+ </div><!-- .widget-area -->
+
+<?php if ( has_nav_menu( 'primary' ) || has_nav_menu( 'social' ) || is_active_sidebar( 'sidebar-1' )  ) : ?>
+	<div id="secondary" class="secondary">
+
+		<?php if ( has_nav_menu( 'primary' ) ) : ?>
+			<nav id="site-navigation" class="main-navigation" role="navigation">
+				<?php
+					// Primary navigation menu.
+					wp_nav_menu( array(
+						'menu_class'     => 'nav-menu',
+						'theme_location' => 'primary',
+					) );
+				?>
+			</nav><!-- .main-navigation -->
+		<?php endif; ?>
+
+		<?php if ( has_nav_menu( 'social' ) ) : ?>
+			<nav id="social-navigation" class="social-navigation" role="navigation">
+				<?php
+					// Social links navigation menu.
+					wp_nav_menu( array(
+						'theme_location' => 'social',
+						'depth'          => 1,
+						'link_before'    => '<span class="screen-reader-text">',
+						'link_after'     => '</span>',
+					) );
+				?>
+			</nav><!-- .social-navigation -->
+		<?php endif; ?>
+
+		<?php if ( is_active_sidebar( 'sidebar-1' ) ) : ?>
+			<div id="widget-area" class="widget-area" role="complementary">
+				<aside id="search-2" class="widget widget_search">
+					<form method="POST" class="search-form" action="http://pierrelange.com/">
+						<label>
+							<input type="search" class="search-field" placeholder="Rechercher par tags..." value="" name="haru_tags">
+						</label>
+						<input type="submit" class="search-submit" value="">
+					</form>
+				</aside>
+				<?php dynamic_sidebar( 'sidebar-1' ); ?>
+			</div><!-- .widget-area -->
+		<?php endif; ?>
+
+	</div><!-- .secondary -->
+
+<?php endif; ?>
