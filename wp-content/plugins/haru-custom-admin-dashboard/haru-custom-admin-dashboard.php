@@ -19,6 +19,7 @@ function haru_custom_events_columns( $columns ) {
 		'cb' => '<input type="checkbox" />',
 		'title' => __( 'Nom' ),
 		'start_time' => __( 'Début de l\'event' ),
+		'location' => __( 'Location' ),
 		'date' => __( 'Date d\'ajout' )
 	);
 	return $columns;
@@ -38,6 +39,17 @@ function haru_manage_events_columns( $column, $post_id ) {
 				printf($value);
 			}
 			break;
+		case 'location' :
+			$city = get_post_meta( $post_id, 'location_city', true );
+			$country = get_post_meta( $post_id, 'location_country', true );
+			if (empty($city)) {
+				$city = 'Inconnu';
+			}
+			if (empty($country)) {
+				$country = 'Inconnu';
+			}
+			printf($city.', '.$country);
+			break;
 
 		/* Just break out of the switch statement for everything else. */
 		default :
@@ -56,6 +68,7 @@ function haru_admin_column_width() {
     echo '<style type="text/css">
         .column-start_time { text-align: left; width:200px !important; overflow:hidden }
         .column-date { text-align: left; width:150px !important; overflow:hidden }
+		.column-location { text-align: left; width:125px !important; overflow:hidden }
     </style>';
 }
 
