@@ -52,6 +52,10 @@ function haru_register_routes() {
         'methods'  => WP_REST_Server::READABLE,
         'callback' => 'haru_change_acf_tags'
     ) );
+	register_rest_route( 'haru/v1', 'acftag/cut', array(
+        'methods'  => WP_REST_Server::CREATABLE,
+        'callback' => 'haru_cut_acf_tag_to_new_field'
+    ) );
 	register_rest_route( 'haru/v1', 'events/tags/post', array(
         'methods'  => WP_REST_Server::READABLE,
         'callback' => 'haru_post_events_WPtags'
@@ -248,7 +252,7 @@ function haru_change_acf_tags( WP_REST_Request $request ) {
     }
     $post_ids = get_posts(array(
         'post_type' => $post_type,
-        'post_status' => 'any', // any = tous les post_status sauf 'trash'
+        'post_status' => array('any', 'trash'), // any = tous les post_status sauf 'trash'
         'fields' => 'ids',
         'posts_per_page' => -1,
         'meta_query' => array(
@@ -386,6 +390,73 @@ function haru_manual_event_update_cover( WP_REST_Request $request ) {
     update_post_meta( $post_id, 'cover_width', $width );
 
     return new WP_REST_Response('done', 200);
+}
+
+function haru_cut_acf_tag_to_new_field( WP_REST_Request $request )
+{
+    $json = $request->get_json_params();
+    $old_field_name = $request['old_field_name'];
+    $tag_request = $request['tag_request'];
+    $new_field_key = $request['new_field_key'];
+
+    $log_object = (object)[];
+    $log_object->old_field_name = $old_field_name;
+    $log_object->tag_request = $tag_request;
+    $log_object->new_field_key = $new_field_key;
+
+    $post_ids = get_posts(array(
+        'post_type' => 'events',
+        'post_status' => array('any', 'trash'),
+        'fields' => 'ids',
+        'posts_per_page' => -1,
+        'meta_query' => array(
+            array(
+                'key' => $old_field_name,
+                'value' => $tag_request,
+                'compare' => 'LIKE'
+            )
+        )
+    ));
+
+    if ($post_ids) {
+        $count_old = 0;
+        $count_new = 0;
+        foreach ($post_ids as $id) {
+            $old_field = get_field_object($old_field_name, $id);
+            $old_field_key = $old_field['key'];
+            $old_field_tags = $old_field['value'];
+            if (!empty($old_field_tags) && ($key = array_search($tag_request, $old_field_tags)) !== FALSE) {
+                unset($old_field_tags[$key]);
+                $updated_tags = array_values($old_field_tags);
+                if (!empty($old_field_tags)) {
+                    update_field($old_field_key, $updated_tags, $id);
+                    $log_object->old_field->update[] = $id;
+                    $count_old++;
+                } else {
+                    delete_field($old_field_key, $id);
+                    $log_object->old_field->delete[] = $id;
+                    $count_old++;
+                }
+                $new_field = get_field_object($new_field_key, $id);
+                $new_field_tags = $new_field['value'];
+                if (!empty($new_field_tags) && ($key = array_search($tag_request, $new_field_tags)) !== FALSE) {
+                    $log_object->new_field->already_present[] = $id;
+                    $count_new++;
+                } else {
+                    $new_field_tags[] = $tag_request;
+                    update_field($new_field_key, $new_field_tags, $id);
+                    $log_object->new_field->update[] = $id;
+                    $count_new++;
+                }
+            }
+        }
+        $log_object->affected_posts_old = $count_old;
+        $log_object->affected_posts_new = $count_new;
+        return new WP_REST_Response($log_object, 200);
+    } else {
+        return new WP_Error( 'haru_no_matches', 'No matches for '.$tag_request.' and '.$old_field_name, array( 'status' => 400 ) );
+    }
+
 }
 
 ?>
