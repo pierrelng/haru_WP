@@ -28,50 +28,54 @@ register_rest_field( 'events', 'details', array(
 
 add_action( 'rest_api_init', 'haru_register_routes' );
 function haru_register_routes() {
-    register_rest_route( 'haru/v1', 'events', array(
-        'methods'  => WP_REST_Server::CREATABLE,
-        'callback' => 'haru_insert_events',
-    ) );
-	register_rest_route( 'haru/v1', 'organizers/facebook', array(
-        'methods'  => WP_REST_Server::READABLE,
-        'callback' => 'haru_get_organizers_facebook'
-    ) );
-    register_rest_route( 'haru/v1', 'venues/facebook', array(
-        'methods'  => WP_REST_Server::READABLE,
-        'callback' => 'haru_get_venues_facebook'
-    ) );
-    register_rest_route( 'haru/v1', 'venues/unwanted', array(
-        'methods'  => WP_REST_Server::READABLE,
-        'callback' => 'haru_get_venues_unwanted'
-    ) );
-	register_rest_route( 'haru/v1', 'events/facebook', array(
-        'methods'  => WP_REST_Server::READABLE,
-        'callback' => 'haru_get_events_facebook'
-    ) );
-	register_rest_route( 'haru/v1', 'acftag/change', array(
-        'methods'  => WP_REST_Server::READABLE,
-        'callback' => 'haru_change_acf_tags'
-    ) );
-	register_rest_route( 'haru/v1', 'acftag/cut', array(
-        'methods'  => WP_REST_Server::CREATABLE,
-        'callback' => 'haru_cut_acf_tag_to_new_field'
-    ) );
-	register_rest_route( 'haru/v1', 'events/tags/post', array(
-        'methods'  => WP_REST_Server::READABLE,
-        'callback' => 'haru_post_events_WPtags'
-    ) );
-    register_rest_route( 'haru/v1', 'events/cover', array(
-        'methods'  => WP_REST_Server::READABLE,
-        'callback' => 'haru_get_events_cover'
-    ) );
-    register_rest_route( 'haru/v1', 'events/cover/manual', array(
-        'methods'  => WP_REST_Server::CREATABLE,
-        'callback' => 'haru_manual_event_add_cover'
-    ) );
-    register_rest_route( 'haru/v1', 'events/cover/update/manual', array(
-        'methods'  => WP_REST_Server::EDITABLE,
-        'callback' => 'haru_manual_event_update_cover'
-    ) );
+  register_rest_route( 'haru/v1', 'events', array(
+    'methods'  => WP_REST_Server::CREATABLE,
+    'callback' => 'haru_insert_events',
+  ) );
+  register_rest_route( 'haru/v1', 'organizers/facebook', array(
+    'methods'  => WP_REST_Server::READABLE,
+    'callback' => 'haru_get_organizers_facebook'
+  ) );
+  register_rest_route( 'haru/v1', 'venues/facebook', array(
+    'methods'  => WP_REST_Server::READABLE,
+    'callback' => 'haru_get_venues_facebook'
+  ) );
+  register_rest_route( 'haru/v1', 'venues/unwanted', array(
+    'methods'  => WP_REST_Server::READABLE,
+    'callback' => 'haru_get_venues_unwanted'
+  ) );
+  register_rest_route( 'haru/v1', 'events/facebook', array(
+    'methods'  => WP_REST_Server::READABLE,
+    'callback' => 'haru_get_events_facebook'
+  ) );
+  register_rest_route( 'haru/v1', 'acftag/change', array(
+    'methods'  => WP_REST_Server::READABLE,
+    'callback' => 'haru_change_acf_tags'
+  ) );
+  register_rest_route( 'haru/v1', 'acftag/cut', array(
+    'methods'  => WP_REST_Server::CREATABLE,
+    'callback' => 'haru_cut_acf_tag_to_new_field'
+  ) );
+  register_rest_route( 'haru/v1', 'events/tags/post', array(
+    'methods'  => WP_REST_Server::READABLE,
+    'callback' => 'haru_post_events_WPtags'
+  ) );
+  register_rest_route( 'haru/v1', 'events/cover', array(
+    'methods'  => WP_REST_Server::READABLE,
+    'callback' => 'haru_get_events_cover'
+  ) );
+  register_rest_route( 'haru/v1', 'events/cover/manual', array(
+    'methods'  => WP_REST_Server::CREATABLE,
+    'callback' => 'haru_manual_event_add_cover'
+  ) );
+  register_rest_route( 'haru/v1', 'events/cover/update/manual', array(
+    'methods'  => WP_REST_Server::EDITABLE,
+    'callback' => 'haru_manual_event_update_cover'
+  ) );
+  register_rest_route( 'haru/v1', 'events', array(
+    'methods'  => WP_REST_Server::READABLE,
+    'callback' => 'haru_get_events'
+  ) );
 }
 
 /**
@@ -392,8 +396,8 @@ function haru_manual_event_update_cover( WP_REST_Request $request ) {
     return new WP_REST_Response('done', 200);
 }
 
-function haru_cut_acf_tag_to_new_field( WP_REST_Request $request )
-{
+function haru_cut_acf_tag_to_new_field( WP_REST_Request $request ) {
+
     $json = $request->get_json_params();
     $old_field_name = $request['old_field_name'];
     $tag_request = $request['tag_request'];
@@ -456,7 +460,36 @@ function haru_cut_acf_tag_to_new_field( WP_REST_Request $request )
     } else {
         return new WP_Error( 'haru_no_matches', 'No matches for '.$tag_request.' and '.$old_field_name, array( 'status' => 400 ) );
     }
+}
 
+function haru_get_events( WP_REST_Request $request ) {
+
+  $posts = get_posts(array(
+  	'post_type'	=> 'events',
+  	'posts_per_page' => 10,
+    'post_status' => 'publish',
+    'meta_query' => array(
+			array(
+				'key' => 'end_time',
+				'value' => current_time( 'mysql' ),
+				'compare' => '>='
+			)
+		),
+  	'meta_key' => 'start_time',
+  	'orderby' => 'meta_value',
+  	'order'	=> 'ASC'
+  ));
+
+  if ($posts) {
+    $controller = new WP_REST_Posts_Controller('events');
+    foreach ($posts as $post) {
+      $data = $controller->prepare_item_for_response( $post, $request );
+      $events[] = $controller->prepare_response_for_collection( $data );
+    }
+    return new WP_REST_Response($events, 200);
+  } else {
+    return new WP_Error( 'haru_no_events', 'No events', array( 'status' => 400 ) );
+  }
 }
 
 ?>
