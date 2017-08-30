@@ -60,6 +60,7 @@ function haru_manage_events_columns( $column, $post_id ) {
 add_filter( 'manage_edit-events_sortable_columns', 'haru_set_custom_events_sortable_columns' );
 function haru_set_custom_events_sortable_columns( $columns ) {
 	$columns['start_time'] = 'start_time';
+	$columns['location'] = 'location';
 	return $columns;
 }
 
@@ -81,6 +82,11 @@ function haru_events_custom_orderby( $query ) {
 
 	if ( 'start_time' == $orderby ) {
 		$query->set( 'meta_key', 'start_time' );
+		$query->set( 'orderby', 'meta_value' );
+	}
+
+	if ( 'location' == $orderby ) {
+		$query->set( 'meta_key', 'location_city' );
 		$query->set( 'orderby', 'meta_value' );
 	}
 }
