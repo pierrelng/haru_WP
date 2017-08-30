@@ -464,9 +464,12 @@ function haru_cut_acf_tag_to_new_field( WP_REST_Request $request ) {
 
 function haru_get_events( WP_REST_Request $request ) {
 
+  $offset = $request['offset'];
+
   $posts = get_posts(array(
   	'post_type'	=> 'events',
-  	'posts_per_page' => 10,
+  	'posts_per_page' => 20,
+  	'offset' => $offset,
     'post_status' => 'publish',
     'meta_query' => array(
 			array(
