@@ -465,23 +465,36 @@ function haru_cut_acf_tag_to_new_field( WP_REST_Request $request ) {
 function haru_get_events( WP_REST_Request $request ) {
 
   $offset = $request['offset'];
+  $selected_day = $request['selected_day'];
 
-  $posts = get_posts(array(
-  	'post_type'	=> 'events',
-  	'posts_per_page' => 20,
-  	'offset' => $offset,
+  $query_args = array(
+    'post_type'	=> 'events',
+    'posts_per_page' => 20,
+    'offset' => $offset,
     'post_status' => 'publish',
     'meta_query' => array(
-			array(
-				'key' => 'end_time',
-				'value' => current_time( 'mysql' ),
-				'compare' => '>='
-			)
-		),
-  	'meta_key' => 'start_time',
-  	'orderby' => 'meta_value',
-  	'order'	=> 'ASC'
-  ));
+      'relation' => 'AND',
+      array(
+        'key' => 'end_time',
+        'value' => current_time( 'mysql' ),
+        'compare' => '>='
+      )
+    ),
+    'meta_key' => 'start_time',
+    'orderby' => 'meta_value',
+    'order'	=> 'ASC'
+  );
+
+  if( !empty($selected_day) ) {
+    $query_args['meta_query'][] = array(
+        'key' => 'start_time',
+        'value' => date('Y-m-'.$selected_day),
+        'compare' => '=',
+        'type' => 'DATE'
+    );
+  }
+
+  $posts = get_posts($query_args);
 
   if ($posts) {
     $controller = new WP_REST_Posts_Controller('events');
