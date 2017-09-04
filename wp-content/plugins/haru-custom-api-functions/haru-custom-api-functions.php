@@ -504,7 +504,7 @@ function haru_get_events( WP_REST_Request $request ) {
     }
     return new WP_REST_Response($events, 200);
   } else {
-    return new WP_Error( 'haru_no_events', 'No events', array( 'status' => 400 ) );
+    return new WP_Error( 'haru_no_events', 'No events found', array( 'status' => 404 ) );
   }
 }
 
