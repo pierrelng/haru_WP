@@ -231,7 +231,14 @@ function haru_get_venues_unwanted() {
 	if (empty($results)) {
 		return new WP_Error( 'haru_no_data', 'No data returned', array( 'status' => 400 ) );
 	}
-	return $results;
+
+  $whitelisted = [857, 903, 973, 1029, 1127, 2178, 3476];
+  foreach ($results as $id) {
+    if (!in_array($id->ID, $whitelisted)) {
+      $refined_results[] = $id;
+    }
+  }
+	return $refined_results;
 }
 
 function haru_get_events_facebook() {
