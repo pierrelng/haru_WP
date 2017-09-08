@@ -503,7 +503,7 @@ function haru_get_events( WP_REST_Request $request ) {
   if( !empty($selected_day) ) {
     $query_args['meta_query'][] = array(
         'key' => 'start_time',
-        'value' => date('Y-m-'.$selected_day),
+        'value' => date($selected_day),
         'compare' => '=',
         'type' => 'DATE'
     );
