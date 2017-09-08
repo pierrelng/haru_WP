@@ -80,6 +80,10 @@ function haru_register_routes() {
     'methods'  => WP_REST_Server::EDITABLE,
     'callback' => 'haru_automatic_when_tags'
   ) );
+  register_rest_route( 'haru/v1', 'events/acftag/coupdecoeur', array(
+    'methods'  => WP_REST_Server::READABLE,
+    'callback' => 'haru_get_upcoming_coupdecoeur'
+  ) );
 }
 
 /**
@@ -649,5 +653,40 @@ function haru_automatic_when_tags() {
 
   return new WP_REST_Response($post_ids, 200);
 }
+
+function haru_get_upcoming_coupdecoeur() {
+
+  $query_args = array(
+    'post_type'	=> 'events',
+    'posts_per_page' => -1,
+    'post_status' => 'publish',
+    'fields' => 'ids',
+    'meta_query' => array(
+      'relation' => 'AND',
+      array(
+        'key' => 'end_time',
+        'value' => current_time( 'mysql' ),
+        'compare' => '>='
+      ),
+      array(
+        'key' => 'tag_coupdecoeur',
+        'value' => 'coup',
+        'compare' => 'LIKE'
+      )
+    ),
+    'meta_key' => 'start_time',
+    'orderby' => 'meta_value',
+    'order'	=> 'ASC'
+  );
+
+  $posts = get_posts($query_args);
+
+  if ($posts) {
+    return new WP_REST_Response($posts, 200);
+  } else {
+    return new WP_Error( 'haru_no_events', 'No events found', array( 'status' => 404 ) );
+  }
+}
+
 
 ?>
