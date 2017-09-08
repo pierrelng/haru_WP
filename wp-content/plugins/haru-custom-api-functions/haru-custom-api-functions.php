@@ -76,6 +76,10 @@ function haru_register_routes() {
     'methods'  => WP_REST_Server::READABLE,
     'callback' => 'haru_get_events'
   ) );
+  register_rest_route( 'haru/v1', 'events/acftag/when/update', array(
+    'methods'  => WP_REST_Server::EDITABLE,
+    'callback' => 'haru_automatic_when_tags'
+  ) );
 }
 
 /**
@@ -506,6 +510,144 @@ function haru_get_events( WP_REST_Request $request ) {
   } else {
     return new WP_Error( 'haru_no_events', 'No events found', array( 'status' => 404 ) );
   }
+}
+
+function haru_automatic_when_tags() {
+
+  $query_args = array(
+    'post_type' => 'events',
+    'post_status' => array('pending'),
+    // 'post_status' => array('any'),
+    'fields' => 'ids',
+    'posts_per_page' => -1
+    // 'posts_per_page' => 10
+  );
+
+  $post_ids = get_posts($query_args);
+  // $post_ids = [5333];
+
+  if ( empty($post_ids) || !is_array($post_ids) ) {
+    return new WP_Error( 'haru_no_events', 'No events found', array( 'status' => 404 ) );
+  }
+
+  // if tag_when_week exists = empty string or array fo strings
+  // if tag_when_day exists = empty string or array fo strings
+  // if tag_when_night exists = empty string or array fo strings
+  // if any of those tags don't exist = null
+
+  foreach ( $post_ids as $id ) {
+    $fields = [
+      'start_time' => new DateTime( get_field( 'start_time', $id, false) ),
+      'end_time' => new DateTime( get_field( 'end_time', $id, false ) ),
+      'tag_when_week' => get_field( 'tag_when_week', $id ),
+      'tag_when_day' => get_field( 'tag_when_day', $id ),
+      'tag_when_night' => get_field( 'tag_when_night', $id )
+    ];
+    foreach ( $fields as $arr_key => $arr_value ) {
+      // if ( is_null($arr_value) ) {
+      //   return new WP_Error( 'haru_no_acftag', 'Missing ACFtag '.$arr_key.' on event '.$id, array( 'status' => 404 ) );
+      // }
+      $start_hour = $fields['start_time']->format('H:i');
+      $end_hour = $fields['end_time']->format('H:i');
+      $interval = new DateInterval('PT1H'); // https://stackoverflow.com/a/35801738/8319316
+      $periods = new DatePeriod($fields['start_time'], $interval, $fields['end_time']);
+      $duration = iterator_count($periods);
+      switch ( $arr_key ) {
+        case 'tag_when_week':
+          $field_key = 'field_5975ed1cdfd28';
+          $start_day = $fields['start_time']->format('l');
+          $start_hour = $fields['start_time']->format('H');
+          $value = [];
+          // Tag SEMAINE
+          if ( $start_day === 'Monday' && $start_hour >= '07' ) {
+            $value[] = 'semaine';
+          }
+          if ( in_array( $start_day, ['Tuesday', 'Wednesday', 'Thursday', 'Friday'] ) ) {
+            $value[] = 'semaine';
+          }
+          // Tag WEEKEND
+          if ( $start_day === 'Friday' && $start_hour >= '18' ) {
+            $value[] = 'weekend';
+          }
+          if ( in_array( $start_day, ['Saturday', 'Sunday'] ) ) {
+            $value[] = 'weekend';
+          }
+          if ( $start_day === 'Monday' && $start_hour < '07' ) {
+            $value[] = 'weekend';
+          }
+          update_field( $field_key, $value, $id );
+          break;
+        case 'tag_when_day':
+          $field_key = 'field_5975efbca4d3e';
+          if ( $duration <= 24 ) { // Si l'event dure moins de 24h
+            $value = [];
+            // Tag JOURNEE
+            if (
+              ( $start_hour >= '10:00' && $start_hour <= '16:00' && $end_hour >= '10:00' && $end_hour <= '16:00' ) // Events compris dans la période 10h-16h
+              || ( $end_hour >= '11:00' && $end_hour <= '16:00' ) // Events dont la fin chevauche la période 10h-16h avec un minimum d'1h après 10h
+              || ( $start_hour >= '10:00' && $start_hour <= '15:00' ) // Events dont le début chevauche la période 10h-16h avec un minimum d'1h avant 16h
+              || ( $start_hour < '10:00' && $end_hour > '16:00' ) // Events chevauchant complétement la période 10h-16h
+            ) {
+              $value[] = 'journee';
+            }
+            // Tag FINDEJOURNEE
+            if (
+              ( $start_hour >= '16:00' && $start_hour <= '21:00' && $end_hour >= '16:00' && $end_hour <= '21:00' ) // Events compris dans la période 16h-21h
+              || ( $end_hour >= '17:00' && $end_hour <= '21:00' ) // Events dont la fin chevauche la période 16h-21h avec un minimum d'1h après 16h
+              || ( $start_hour >= '16:00' && $start_hour <= '20:00' ) // Events dont le début chevauche la période 16h-21h avec un minimum d'1h avant 21h
+              || ( $start_hour < '16:00' && $end_hour > '21:00' ) // Events chevauchant complétement la période 16h-21h
+            ) {
+              $value[] = 'findejournee';
+            }
+            // Tag BEFORE
+            if (
+              ( ( $start_hour >= '21:00' || $start_hour == '00:00' ) && ( $end_hour >= '21:00' || $end_hour == '00:00' ) ) // Events compris dans la période 21h-00h
+              || ( $end_hour >= '22:00' || $end_hour == '00:00' ) // Events dont la fin chevauche la période 21h-00h avec un minimum d'1h après 21h
+              || ( $start_hour >= '21:00' && $start_hour <= '23:00' ) // Events dont le début chevauche la période 21h-00h avec un minimum d'1h avant 00h
+              || ( $start_hour >= $end_hour && $start_hour < '21:00') // Events chevauchant complétement la période 21h-00h
+            ) {
+              $value[] = 'before';
+            }
+            // Tag SOIR
+            if (
+              ( ( $start_hour >= '22:00' || $start_hour <= '03:00' ) && ( $end_hour >= '22:00' || $end_hour <= '03:00' ) ) // Events compris dans la période 22h-03h
+              || ( $end_hour >= '23:00' || $end_hour <= '03:00' ) // Events dont la fin chevauche la période 22h-03h avec un minimum d'1h après 22h
+              || ( $start_hour >= '22:00' || $start_hour <= '02:00' ) // Events dont le début chevauche la période 22h-03h avec un minimum d'1h avant 03h
+              || ( $start_hour >= $end_hour && $start_hour < '22:00' && $end_hour > '03:00' ) // Events chevauchant complétement la période 22h-03h
+            ) {
+              $value[] = 'soir';
+            }
+            // Tag AFTER
+            if ( ( $start_hour >= '04:00' && $start_hour <= '09:59' ) ) {
+              $value[] = 'after';
+            }
+            update_field( $field_key, $value, $id );
+          }
+          break;
+        case 'tag_when_night':
+          $field_key = 'field_5976068837420';
+          if ( $duration <= 24 ) {
+            $value = [];
+            // $new_tag_when_day = get_field( 'tag_when_day', $id );
+            // if ( empty($new_tag_when_day) || ( is_array($new_tag_when_day) && !in_array( 'after', $new_tag_when_day ) ) ) {
+              if ( ( $end_hour >= '23:00' || $end_hour <= '03:00') ) {
+                $value[] = 'early';
+              }
+              if ( ( $end_hour >= '04:00' && $end_hour <= '06:00' ) ) {
+                $value[] = 'allnightlong';
+              }
+              if ( ( $end_hour >= '06:00' && $end_hour <= '10:00' ) ) {
+                $value[] = 'late';
+              }
+            // }
+          }
+          update_field( $field_key, $value, $id );
+          break;
+      }
+    }
+  }
+
+  return new WP_REST_Response($post_ids, 200);
 }
 
 ?>
