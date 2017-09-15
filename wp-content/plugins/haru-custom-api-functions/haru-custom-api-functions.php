@@ -641,7 +641,7 @@ function haru_automatic_when_tags() {
             $value = [];
             // $new_tag_when_day = get_field( 'tag_when_day', $id );
             // if ( empty($new_tag_when_day) || ( is_array($new_tag_when_day) && !in_array( 'after', $new_tag_when_day ) ) ) {
-              if ( ( $end_hour >= '23:00' || $end_hour <= '03:00') ) {
+              if ( ( $end_hour >= '22:00' || $end_hour <= '03:00') ) {
                 $value[] = 'early';
               }
               if ( ( $end_hour >= '04:00' && $end_hour <= '06:00' ) ) {
