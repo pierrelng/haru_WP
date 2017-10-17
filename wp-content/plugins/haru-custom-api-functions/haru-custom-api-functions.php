@@ -48,6 +48,10 @@ function haru_register_routes() {
     'methods'  => WP_REST_Server::READABLE,
     'callback' => 'haru_get_events_facebook'
   ) );
+  register_rest_route( 'haru/v1', 'events/facebook/flexible/status', array(
+    'methods'  => WP_REST_Server::READABLE,
+    'callback' => 'haru_get_events_facebook_flexible_status'
+  ) );
   register_rest_route( 'haru/v1', 'acftag/change', array(
     'methods'  => WP_REST_Server::READABLE,
     'callback' => 'haru_change_acf_tags'
@@ -690,6 +694,40 @@ function haru_get_upcoming_coupdecoeur() {
 
   if ($posts) {
     return new WP_REST_Response($posts, 200);
+  } else {
+    return new WP_Error( 'haru_no_events', 'No events found', array( 'status' => 404 ) );
+  }
+}
+
+function haru_get_events_facebook_flexible_status() {
+
+  $query_args = array(
+    'post_type'	=> 'events',
+    'posts_per_page' => -1,
+    'fields' => 'ids',
+    'post_status' => array('publish', 'pending'),
+    'meta_query' => array(
+      array(
+        'key' => 'end_time',
+        'value' => current_time( 'mysql' ),
+        'compare' => '>='
+      )
+    ),
+    'meta_key' => 'start_time',
+    'orderby' => 'meta_value',
+    'order'	=> 'ASC'
+  );
+
+  $post_ids = get_posts($query_args);
+
+  if ($post_ids) {
+    foreach ($post_ids as $id) {
+      $results[] = array(
+        'id' => $id,
+        'url' => get_field('facebook_event_url', $id),
+      );
+    }
+    return new WP_REST_Response($results, 200);
   } else {
     return new WP_Error( 'haru_no_events', 'No events found', array( 'status' => 404 ) );
   }
