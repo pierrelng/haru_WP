@@ -88,6 +88,10 @@ function haru_register_routes() {
     'methods'  => WP_REST_Server::READABLE,
     'callback' => 'haru_get_upcoming_coupdecoeur'
   ) );
+  register_rest_route( 'haru/v1', 'events/(?P<id>\d+)', array(
+    'methods'  => WP_REST_Server::READABLE,
+    'callback' => 'haru_get_specific_event'
+  ) );
 }
 
 /**
@@ -728,6 +732,26 @@ function haru_get_events_facebook_flexible_status() {
       );
     }
     return new WP_REST_Response($results, 200);
+  } else {
+    return new WP_Error( 'haru_no_events', 'No events found', array( 'status' => 404 ) );
+  }
+}
+
+function haru_get_specific_event( WP_REST_Request $request ) {
+
+  $id = $request['id'];
+
+  $post = get_post($id);
+
+  if ($post) {
+    $controller = new WP_REST_Posts_Controller('events');
+    $data = $controller->prepare_item_for_response( $post, $request );
+    $event = $controller->prepare_response_for_collection( $data );
+    if ($event['type'] === 'events' && $event['status'] === 'publish') {
+      return new WP_REST_Response($event, 200);
+    } else {
+      return new WP_Error( 'haru_no_events', 'No events found', array( 'status' => 404 ) );
+    }
   } else {
     return new WP_Error( 'haru_no_events', 'No events found', array( 'status' => 404 ) );
   }
