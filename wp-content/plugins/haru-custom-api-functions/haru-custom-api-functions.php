@@ -96,6 +96,10 @@ function haru_register_routes() {
     'methods'  => WP_REST_Server::READABLE,
     'callback' => 'haru_get_specific_venue'
   ) );
+  register_rest_route( 'haru/v1', 'organizers/(?P<id>\d+)', array(
+    'methods'  => WP_REST_Server::READABLE,
+    'callback' => 'haru_get_specific_organizer'
+  ) );
 }
 
 /**
@@ -778,6 +782,26 @@ function haru_get_specific_venue( WP_REST_Request $request ) {
     }
   } else {
     return new WP_Error( 'haru_no_venues', 'No venues found', array( 'status' => 404 ) );
+  }
+}
+
+function haru_get_specific_organizer( WP_REST_Request $request ) {
+
+  $id = $request['id'];
+
+  $post = get_post($id);
+
+  if ($post) {
+    $controller = new WP_REST_Posts_Controller('organizers');
+    $data = $controller->prepare_item_for_response( $post, $request );
+    $event = $controller->prepare_response_for_collection( $data );
+    if ($event['type'] === 'organizers' && $event['status'] === 'publish') {
+      return new WP_REST_Response($event, 200);
+    } else {
+      return new WP_Error( 'haru_no_organizers', 'No organizers found', array( 'status' => 404 ) );
+    }
+  } else {
+    return new WP_Error( 'haru_no_organizers', 'No organizers found', array( 'status' => 404 ) );
   }
 }
 
