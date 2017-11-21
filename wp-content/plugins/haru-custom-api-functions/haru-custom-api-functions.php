@@ -78,7 +78,7 @@ function haru_register_routes() {
   ) );
   register_rest_route( 'haru/v1', 'events', array(
     'methods'  => WP_REST_Server::READABLE,
-    'callback' => 'haru_get_events'
+    'callback' => 'haru_get_events' // fastTravelAnchor1
   ) );
   register_rest_route( 'haru/v1', 'events/acftag/when/update', array(
     'methods'  => WP_REST_Server::EDITABLE,
@@ -99,6 +99,14 @@ function haru_register_routes() {
   register_rest_route( 'haru/v1', 'organizers/(?P<id>\d+)', array(
     'methods'  => WP_REST_Server::READABLE,
     'callback' => 'haru_get_specific_organizer'
+  ) );
+  register_rest_route( 'haru/v1', 'events/upcoming/all', array(
+    'methods'  => WP_REST_Server::READABLE,
+    'callback' => 'haru_get_all_upcoming_events'
+  ) );
+  register_rest_route( 'haru/v1', 'events/facebook/ids', array(
+    'methods'  => WP_REST_Server::READABLE,
+    'callback' => 'haru_get_events_facebook_by_ids'
   ) );
 }
 
@@ -361,7 +369,13 @@ function haru_post_events_WPtags() {
     }
 }
 
-function haru_get_events_cover() {
+function haru_get_events_cover( WP_REST_Request $request ) {
+
+  $ids = $request['ids'];
+
+  if (empty($ids)) {
+		return new WP_Error( 'haru_no_param', 'No parameter given', array( 'status' => 400 ) );
+	}
 
 	global $wpdb;
 	$querystr = "
@@ -369,8 +383,9 @@ function haru_get_events_cover() {
 		FROM $wpdb->posts
 		INNER JOIN $wpdb->postmeta
 		ON $wpdb->posts.ID = $wpdb->postmeta.post_id
-		WHERE $wpdb->posts.post_type = 'events'
-        AND $wpdb->posts.post_status = 'publish'
+		WHERE $wpdb->posts.ID IN (".$ids.")
+    AND $wpdb->posts.post_type = 'events'
+    AND $wpdb->posts.post_status = 'publish'
 		AND $wpdb->postmeta.meta_key = 'cover_source'
     ";
 	$results = $wpdb->get_results($querystr);
@@ -398,8 +413,8 @@ function haru_manual_event_add_cover( WP_REST_Request $request ) {
     }
 
     add_post_meta( $post_id, 'cover_source', $source );
-	add_post_meta( $post_id, 'cover_height', $height );
-	add_post_meta( $post_id, 'cover_width', $width );
+  	add_post_meta( $post_id, 'cover_height', $height );
+  	add_post_meta( $post_id, 'cover_width', $width );
 
     return new WP_REST_Response('done', 200);
 }
@@ -493,7 +508,7 @@ function haru_cut_acf_tag_to_new_field( WP_REST_Request $request ) {
     }
 }
 
-function haru_get_events( WP_REST_Request $request ) {
+function haru_get_events( WP_REST_Request $request ) { // fastTravelAnchor1
 
   $offset = $request['offset'];
   $selected_day = $request['selected_day'];
@@ -805,5 +820,59 @@ function haru_get_specific_organizer( WP_REST_Request $request ) {
   }
 }
 
+function haru_get_all_upcoming_events() {
+
+  $query_args = array(
+    'post_type'	=> 'events',
+    'posts_per_page' => -1,
+    'post_status' => 'publish',
+    'fields' => 'ids',
+    'meta_query' => array(
+      array(
+        'key' => 'end_time',
+        'value' => current_time( 'mysql' ),
+        'compare' => '>='
+      )
+    ),
+    'meta_key' => 'start_time',
+    'orderby' => 'meta_value',
+    'order'	=> 'ASC'
+  );
+
+  $posts = get_posts($query_args);
+
+  if ($posts) {
+    return new WP_REST_Response($posts, 200);
+  } else {
+    return new WP_Error( 'haru_no_events', 'No events found', array( 'status' => 404 ) );
+  }
+}
+
+function haru_get_events_facebook_by_ids( WP_REST_Request $request ) {
+
+  $ids = $request['ids'];
+
+  if (empty($ids)) {
+		return new WP_Error( 'haru_no_param', 'No parameter given', array( 'status' => 400 ) );
+	}
+
+	global $wpdb;
+	$querystr = "
+		SELECT $wpdb->posts.ID, $wpdb->postmeta.meta_value
+		FROM $wpdb->posts
+		INNER JOIN $wpdb->postmeta
+		ON $wpdb->posts.ID = $wpdb->postmeta.post_id
+		WHERE $wpdb->posts.ID IN (".$ids.")
+    AND $wpdb->posts.post_type = 'events'
+    AND $wpdb->posts.post_status = 'publish'
+		AND $wpdb->postmeta.meta_key = 'facebook_event_url'
+    ";
+	$results = $wpdb->get_results($querystr);
+
+	if (empty($results)) {
+		return new WP_Error( 'haru_no_data', 'No data returned', array( 'status' => 400 ) );
+	}
+	return $results;
+}
 
 ?>
