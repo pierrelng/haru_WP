@@ -334,39 +334,52 @@ function haru_change_acf_tags( WP_REST_Request $request ) {
 
 function haru_post_events_WPtags() {
 
-    $post_ids = get_posts(array(
-        'post_type' => 'events',
-        'post_status' => 'publish',
-        'posts_per_page'=> -1,
-        'fields' => 'ids'
-    ));
-    if ($post_ids) {
-        $count = 0;
-        foreach ($post_ids as $id) {
-            $fields = get_fields($id);
-            $tags = [];
-            foreach ($fields as $key => $value) {
-                if (substr( $key, 0, 4 ) === "tag_" && !empty($value)) {
-                    if (is_array($value)) {
-                        foreach ($value as $tag) {
-                            $tags[] = str_replace("_"," ", $tag);
-                        }
-                    } else {
-                        $tags[] = str_replace("_"," ", $value);
-                    }
-                }
+  $query_args = array(
+    'post_type'	=> 'events',
+    'posts_per_page' => -1,
+    'post_status' => 'publish',
+    'fields' => 'ids',
+    'meta_query' => array(
+      array(
+        'key' => 'end_time',
+        'value' => current_time( 'mysql' ),
+        'compare' => '>='
+      )
+    ),
+    'meta_key' => 'start_time',
+    'orderby' => 'meta_value',
+    'order'	=> 'ASC'
+  );
+
+  $post_ids = get_posts($query_args);
+
+  if ($post_ids) {
+    $count = 0;
+    foreach ($post_ids as $id) {
+      $fields = get_fields($id);
+      $tags = [];
+      foreach ($fields as $key => $value) {
+        if (substr( $key, 0, 4 ) === "tag_" && !empty($value)) {
+          if (is_array($value)) {
+            foreach ($value as $tag) {
+              $tags[] = str_replace("_"," ", $tag);
             }
-            $res = wp_set_post_tags($id, $tags);
-            if ($res && !empty($res)) {
-                $count++;
-            } else {
-                return new WP_Error( 'haru_error', 'Error on post '.$id, array( 'status' => 400 ) );
-            }
+          } else {
+            $tags[] = str_replace("_"," ", $value);
+          }
         }
-        return 'Total posts ids in WP : '.count($post_ids).'. Inserted tags on '.$count.' posts.';
-    } else {
-        return new WP_Error( 'haru_no_matches', 'No posts ids', array( 'status' => 400 ) );
+      }
+      $res = wp_set_post_tags($id, $tags);
+      if ($res && !empty($res)) {
+        $count++;
+      } else {
+        return new WP_Error( 'haru_error', 'Error on post '.$id, array( 'status' => 400 ) );
+      }
     }
+    return 'Total posts ids in WP : '.count($post_ids).'. Inserted tags on '.$count.' posts.';
+  } else {
+    return new WP_Error( 'haru_no_matches', 'No posts ids', array( 'status' => 400 ) );
+  }
 }
 
 function haru_get_events_cover( WP_REST_Request $request ) {
@@ -512,6 +525,7 @@ function haru_get_events( WP_REST_Request $request ) { // fastTravelAnchor1
 
   $offset = $request['offset'];
   $selected_day = $request['selected_day'];
+  $searched_tags = $request['searched_tags'];
 
   $query_args = array(
     'post_type'	=> 'events',
@@ -533,10 +547,26 @@ function haru_get_events( WP_REST_Request $request ) { // fastTravelAnchor1
 
   if( !empty($selected_day) ) {
     $query_args['meta_query'][] = array(
-        'key' => 'start_time',
-        'value' => date($selected_day),
-        'compare' => '=',
-        'type' => 'DATE'
+      'key' => 'start_time',
+      'value' => date($selected_day),
+      'compare' => '=',
+      'type' => 'DATE'
+    );
+  }
+
+  if( !empty($searched_tags) ) {
+    $query_args['meta_query'][] = array(
+      'relation' => 'OR',
+      array(
+        'key' => 'tag_what_genre',
+        'value' => $searched_tags,
+        'compare' => 'LIKE'
+      ),
+      array(
+        'key' => 'tag_what_prod',
+        'value' => $searched_tags,
+        'compare' => 'LIKE'
+      )
     );
   }
 
