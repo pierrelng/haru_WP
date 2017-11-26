@@ -525,7 +525,7 @@ function haru_get_events( WP_REST_Request $request ) { // fastTravelAnchor1
 
   $offset = $request['offset'];
   $selected_day = $request['selected_day'];
-  $searched_tags = $request['searched_tags'];
+  $searched_tag = $request['searched_tag'];
 
   $query_args = array(
     'post_type'	=> 'events',
@@ -554,19 +554,74 @@ function haru_get_events( WP_REST_Request $request ) { // fastTravelAnchor1
     );
   }
 
-  if( !empty($searched_tags) ) {
+  if( !empty($searched_tag) ) {
     $query_args['meta_query'][] = array(
       'relation' => 'OR',
       array(
+        'key' => 'tag_when_week',
+        'value' => $searched_tag,
+        'compare' => 'LIKE'
+      ),
+      array(
+        'key' => 'tag_when_day',
+        'value' => $searched_tag,
+        'compare' => 'LIKE'
+      ),
+      array(
+        'key' => 'tag_when_night',
+        'value' => $searched_tag,
+        'compare' => 'LIKE'
+      ),
+      array(
+        'key' => 'tag_how_entry',
+        'value' => $searched_tag,
+        'compare' => 'LIKE'
+      ),
+      array(
+        'key' => 'tag_how_price',
+        'value' => $searched_tag,
+        'compare' => 'LIKE'
+      ),
+      array(
         'key' => 'tag_what_genre',
-        'value' => $searched_tags,
+        'value' => $searched_tag,
+        'compare' => 'LIKE'
+      ),
+      array(
+        'key' => 'tag_what_public',
+        'value' => $searched_tag,
         'compare' => 'LIKE'
       ),
       array(
         'key' => 'tag_what_prod',
-        'value' => $searched_tags,
+        'value' => $searched_tag,
         'compare' => 'LIKE'
-      )
+      ),
+      array(
+        'key' => 'tag_what_activities',
+        'value' => $searched_tag,
+        'compare' => 'LIKE'
+      ),
+      array(
+        'key' => 'tag_what_atmos_scale',
+        'value' => $searched_tag,
+        'compare' => 'LIKE'
+      ),
+      array(
+        'key' => 'tag_what_atmos_misc',
+        'value' => $searched_tag,
+        'compare' => 'LIKE'
+      ),
+      array(
+        'key' => 'tag_what_drink',
+        'value' => $searched_tag,
+        'compare' => 'LIKE'
+      ),
+      array(
+        'key' => 'tag_coupdecoeur',
+        'value' => $searched_tag,
+        'compare' => 'LIKE'
+      ),
     );
   }
 
