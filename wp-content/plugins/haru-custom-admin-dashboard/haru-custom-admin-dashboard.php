@@ -67,8 +67,7 @@ function haru_set_custom_events_sortable_columns( $columns ) {
 add_action('admin_head', 'haru_admin_column_width'); // https://wordpress.stackexchange.com/a/85045
 function haru_admin_column_width() {
     echo '<style type="text/css">
-        .column-start_time { text-align: left; width:200px !important; overflow:hidden }
-        .column-date { text-align: left; width:150px !important; overflow:hidden }
+    .column-start_time { text-align: left; width:200px !important; overflow:hidden }
 		.column-location { text-align: left; width:125px !important; overflow:hidden }
     </style>';
 }
