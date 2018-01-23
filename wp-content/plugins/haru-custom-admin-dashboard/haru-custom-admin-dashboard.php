@@ -20,7 +20,7 @@ function haru_custom_events_columns( $columns ) {
 		'title' => __( 'Nom' ),
 		'start_time' => __( 'Début de l\'event' ),
 		'location' => __( 'Location' ),
-		'date' => __( 'Date d\'ajout' )
+		// 'date' => __( 'Date d\'ajout' )
 	);
 	return $columns;
 }
