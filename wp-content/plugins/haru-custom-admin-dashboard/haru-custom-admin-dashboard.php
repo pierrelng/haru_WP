@@ -17,6 +17,7 @@ add_filter( 'manage_events_posts_columns', 'haru_custom_events_columns' );
 function haru_custom_events_columns( $columns ) {
 	$columns = array(
 		'cb' => '<input type="checkbox" />',
+		'cover' => __( 'Cover' ),
 		'title' => __( 'Nom' ),
 		'start_time' => __( 'Début de l\'event' ),
 		'location' => __( 'Location' ),
@@ -50,6 +51,26 @@ function haru_manage_events_columns( $column, $post_id ) {
 			}
 			printf($city.', '.$country);
 			break;
+		case 'cover' :
+      $cover = get_post_meta( $post_id, 'cover_source', true );
+      $facebook_event_url = get_post_meta( $post_id, 'facebook_event_url', true );
+      if (empty($cover)) {
+        $cover = 'Pas de cover';
+        printf($cover);
+        break;
+      }
+      echo '
+      <a href="'.$facebook_event_url.'" target="_blank">
+        <div style="
+          height: 90px;
+          width: 160px;
+          background-image: url('.$cover.');
+          background-repeat: no-repeat;
+          background-position: center;
+          background-size: cover;
+        "></div>
+      </a>';
+			break;
 
 		/* Just break out of the switch statement for everything else. */
 		default :
@@ -67,6 +88,7 @@ function haru_set_custom_events_sortable_columns( $columns ) {
 add_action('admin_head', 'haru_admin_column_width'); // https://wordpress.stackexchange.com/a/85045
 function haru_admin_column_width() {
     echo '<style type="text/css">
+    .column-cover { width:165px !important; }
     .column-start_time { text-align: left; width:200px !important; overflow:hidden }
 		.column-location { text-align: left; width:125px !important; overflow:hidden }
     </style>';
