@@ -545,12 +545,30 @@ function haru_get_events( WP_REST_Request $request ) { // fastTravelAnchor1
     'order'	=> 'ASC'
   );
 
-  if( !empty($selected_day) ) {
+  if( !empty($selected_day) && date($selected_day) !== current_time('Y-m-d')) {
     $query_args['meta_query'][] = array(
       'key' => 'start_time',
       'value' => date($selected_day),
       'compare' => '=',
       'type' => 'DATE'
+    );
+  }
+
+  if( !empty($selected_day) && date($selected_day) === current_time('Y-m-d')) {
+    $query_args['meta_query'][] = array(
+      'relation' => 'OR',
+      array(
+        'key' => 'start_time',
+        'value' => date($selected_day),
+        'compare' => '=',
+        'type' => 'DATE'
+      ),
+      array(
+        'key' => 'end_time',
+        'value' => date($selected_day),
+        'compare' => '=',
+        'type' => 'DATE'
+      )
     );
   }
 
