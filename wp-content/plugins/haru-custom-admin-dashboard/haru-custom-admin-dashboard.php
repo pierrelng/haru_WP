@@ -36,7 +36,7 @@ function haru_manage_events_columns( $column, $post_id ) {
 				echo __('Inconnu');
 			} else {
 				$datetime = new DateTime($start_time);
-				$value = $datetime->format('d/m/y - H:i');
+				$value = $datetime->format('D d/m/y - H:i');
 				printf($value);
 			}
 			break;
