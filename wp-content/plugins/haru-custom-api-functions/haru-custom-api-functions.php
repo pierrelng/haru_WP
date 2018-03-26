@@ -661,7 +661,7 @@ function haru_automatic_when_tags() {
 
   $query_args = array(
     'post_type' => 'events',
-    'post_status' => array('pending'),
+    'post_status' => array('pending', 'vendredi', 'samedi', 'dimanche'),
     // 'post_status' => array('any'),
     'fields' => 'ids',
     'posts_per_page' => -1
