@@ -19,6 +19,7 @@ function haru_custom_events_columns( $columns ) {
 		'cb' => '<input type="checkbox" />',
 		'cover' => __( 'Cover' ),
 		'title' => __( 'Nom' ),
+    'venue' => __( 'Venue' ),
 		'start_time' => __( 'Début de l\'event' ),
 		'location' => __( 'Location' ),
 		// 'date' => __( 'Date d\'ajout' )
@@ -39,6 +40,10 @@ function haru_manage_events_columns( $column, $post_id ) {
 				$value = $datetime->format('D d/m/y - H:i');
 				printf($value);
 			}
+			break;
+		case 'venue' :
+			$acf = get_post_meta( $post_id, 'place_name', true );
+      printf($acf);
 			break;
 		case 'location' :
 			$city = get_post_meta( $post_id, 'location_city', true );
@@ -89,6 +94,7 @@ add_action('admin_head', 'haru_admin_column_width'); // https://wordpress.stacke
 function haru_admin_column_width() {
     echo '<style type="text/css">
     .column-cover { width:165px !important; }
+    .column-title { text-align: left; width:400px !important; overflow:hidden }
     .column-start_time { text-align: left; width:200px !important; overflow:hidden }
 		.column-location { text-align: left; width:125px !important; overflow:hidden }
     </style>';
