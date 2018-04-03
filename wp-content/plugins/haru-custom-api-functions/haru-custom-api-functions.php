@@ -640,6 +640,11 @@ function haru_get_events( WP_REST_Request $request ) { // fastTravelAnchor1
         'value' => $searched_tag,
         'compare' => 'LIKE'
       ),
+      array(
+        'key' => 'tag_selecta',
+        'value' => $searched_tag,
+        'compare' => 'LIKE'
+      ),
     );
   }
 
